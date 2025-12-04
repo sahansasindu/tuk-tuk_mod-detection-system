@@ -32,7 +32,7 @@ def page1():
 
 @app.route("/page2")
 def page2():
-    return render_template("page2.html")
+    return render_template("windscreenvisibility.html")
 
 
 # -----------------------------
