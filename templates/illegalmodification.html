@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    body { background-color: #f4f7fb; }
+    .card { border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    img, video { max-width: 100%; border-radius: 10px; margin-top: 15px; }
+    pre {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: left;
+      white-space: pre-wrap;
+      font-size: 0.95rem;
+    }
+    #cameraSection { display: none; }
+    #closeDetectionBtn { display: none; }
+</style>
+
+<div class="container text-center">
+  <div class="card p-4">
+    <h2 class="mb-3 text-primary">Illegal Vehicle Modification Detector</h2>
+
+    <!-- Upload Form -->
+    <form id="uploadForm">
+      <input type="file" id="imageInput" class="form-control mb-3" accept="image/*" required>
+      <button class="btn btn-primary w-100 mb-3" type="submit">Detect Uploaded Image</button>
+    </form>
+
+    <!-- Camera Controls -->
+    <button class="btn btn-outline-primary mb-3" id="openCameraBtn">📷 Open Camera</button>
+
+    <div id="cameraSection">
+      <video id="camera" autoplay playsinline class="mt-2"></video>
+      <canvas id="snapshot" style="display:none;"></canvas>
+      <div class="mt-3">
+        <button class="btn btn-secondary" id="captureBtn">📸 Capture Photo</button>
+        <button class="btn btn-success" id="detectFromCamera" style="display:none;">Detect Captured Image</button>
+        <button class="btn btn-outline-danger" id="closeCameraBtn">❌ Close Camera</button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="result" class="mt-4"></div>
+
+    <!-- Close Detection Button -->
+    <button class="btn btn-outline-secondary mt-3" id="closeDetectionBtn">🧹 Close Detection</button>
+  </div>
+</div>
+
+<script>
+  const camera = document.getElementById('camera');
+  const canvas = document.getElementById('snapshot');
+  const openCameraBtn = document.getElementById('openCameraBtn');
+  const closeCameraBtn = document.getElementById('closeCameraBtn');
+  const captureBtn = document.getElementById('captureBtn');
+  const detectFromCamera = document.getElementById('detectFromCamera');
+  const cameraSection = document.getElementById('cameraSection');
+  const resultDiv = document.getElementById('result');
+  const closeDetectionBtn = document.getElementById('closeDetectionBtn');
+  const fileInput = document.getElementById('imageInput');
+  let stream;
+
+  // Open camera
+  openCameraBtn.addEventListener('click', async () => {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      camera.srcObject = stream;
+      cameraSection.style.display = 'block';
+      openCameraBtn.style.display = 'none';
+    } catch (err) {
+      alert('Camera access denied or unavailable.');
+      console.error(err);
+    }
+  });
+
+  // Close camera
+  closeCameraBtn.addEventListener('click', () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+    cameraSection.style.display = 'none';
+    openCameraBtn.style.display = 'inline-block';
+  });
+
+  // Capture from webcam
+  captureBtn.addEventListener('click', () => {
+    const context = canvas.getContext('2d');
+    canvas.width = camera.videoWidth;
+    canvas.height = camera.videoHeight;
+    context.drawImage(camera, 0, 0, canvas.width, canvas.height);
+
+    const dataURL = canvas.toDataURL('image/jpeg');
+    resultDiv.innerHTML = `<p><b>Preview:</b></p><img src="${dataURL}" alt="Captured Image">`;
+    detectFromCamera.style.display = 'inline-block';
+    closeDetectionBtn.style.display = 'inline-block';
+  });
+
+  // Detect from webcam
+  detectFromCamera.addEventListener('click', async () => {
+    resultDiv.innerHTML = '<div class="text-muted">Processing...</div>';
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+    const formData = new FormData();
+    formData.append('image', blob, 'captured.jpg');
+
+    const res = await fetch('/detect', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    showResult(data);
+  });
+
+  // Detect from file upload
+  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('image', fileInput.files[0]);
+
+    resultDiv.innerHTML = '<div class="text-muted">Processing...</div>';
+    const res = await fetch('/detect', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    showResult(data);
+  });
+
+  // Display results
+  function showResult(data) {
+    closeDetectionBtn.style.display = 'inline-block';
+
+    if (data.error) {
+      resultDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+      return;
+    }
+
+    const color = data.illegal_detected ? 'danger' : 'success';
+    resultDiv.innerHTML = `
+      <div class="alert alert-${color}">
+        <b>${data.illegal_detected ? '⚠️ Illegal Modification Detected!' : '✅ No Illegal Modification Detected'}</b>
+      </div>
+      <p><b>Detected Classes:</b> ${data.detected_classes.join(', ') || 'None'}</p>
+      <img src="${data.result_image}" alt="Detection Result">
+      <pre>${data.violation_message}</pre>
+    `;
+  }
+
+  // Close detection
+  closeDetectionBtn.addEventListener('click', () => {
+    resultDiv.innerHTML = '';
+    fileInput.value = '';
+    detectFromCamera.style.display = 'none';
+    closeDetectionBtn.style.display = 'none';
+  });
+</script>
+
+{% endblock %}

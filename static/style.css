@@ -1,0 +1,16 @@
+.hero-section {
+    height: 70vh;
+    background: url("my_web_app\static\images\front.png") center/cover no-repeat;
+    background-color: rgba(0, 0, 0, 0.6);
+    background-blend-mode: darken;
+}
+
+.info-box {
+    background: #ffffff;
+    border-radius: 12px;
+    transition: 0.3s;
+}
+
+.info-box:hover {
+    transform: scale(1.05);
+}
