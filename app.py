@@ -9,7 +9,8 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Load YOLO model
-model = YOLO(r"D:\New folder\my_web_app\weights\best.pt")
+# model = YOLO(r"D:\New folder\my_web_app\weights\best.pt")
+model = YOLO(r"..\weights\best.pt")
 
 # Class names
 class_names = [
@@ -105,7 +106,8 @@ def detect():
 # -----------------------------
 # Windscreen DETECTION ROUTE
 # -----------------------------
-wind_model = YOLO(r"D:\New folder\my_web_app\weights\best1.pt")
+# wind_model = YOLO(r"D:\New folder\my_web_app\weights\best1.pt")
+wind_model = YOLO(r"..\weights\best1.pt")
 
 @app.route("/detect_windshield", methods=["POST"])
 def detect_windshield():
