@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container p-3">
+  <div class="card p-4 shadow-sm">
+
+    <h2 class="text-primary text-center mb-3">Illegal Horn sound Detector</h2>
+
+    <!-- Camera & File Controls -->
+    <div class="d-flex flex-column gap-2 mb-2">
+        <button class="btn btn-outline-primary w-100" id="openCameraBtn">📷 Open Camera</button>
+        <input type="file" id="windInput" class="form-control" accept="image/*">
+    </div>
+
+    <!-- Detection Button -->
+    <button class="btn btn-success w-100 mb-2" id="detectBtn">Check Visibility</button>
+
+    <!-- Camera Section -->
+    <div id="cameraSection" style="display:none;" class="text-center mt-3">
+        <video id="camera" autoplay playsinline class="img-fluid rounded"></video>
+        <canvas id="snapshot" style="display:none;"></canvas>
+        <div class="mt-2 d-flex justify-content-center gap-2 flex-wrap">
+            <button class="btn btn-secondary" id="captureBtn">📸 Capture Photo</button>
+            <button class="btn btn-outline-danger" id="closeCameraBtn">❌ Close Camera</button>
+        </div>
+    </div>
+
+    <!-- Detection Result -->
+    <div id="windResult" class="mt-4"></div>
+
+    <!-- 👉 NEW: Close Detection Button -->
+    <button class="btn btn-outline-secondary w-100 mt-3" id="closeDetectionBtn" style="display:none;">
+        🧹 Close Detection
+    </button>
+
+  </div>
+</div>
+
+<script>
+const camera = document.getElementById("camera");
+const canvas = document.getElementById("snapshot");
+const openCameraBtn = document.getElementById("openCameraBtn");
+const closeCameraBtn = document.getElementById("closeCameraBtn");
+const captureBtn = document.getElementById("captureBtn");
+const detectBtn = document.getElementById("detectBtn");
+const cameraSection = document.getElementById("cameraSection");
+const resultDiv = document.getElementById("windResult");
+const fileInput = document.getElementById("windInput");
+const closeDetectionBtn = document.getElementById("closeDetectionBtn");
+
+let stream;
+let currentBlob = null;
+
+// Open camera
+openCameraBtn.addEventListener("click", async () => {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        camera.srcObject = stream;
+        cameraSection.style.display = "block";
+        openCameraBtn.style.display = "none";
+    } catch (err) {
+        alert("Camera access denied or unavailable.");
+        console.error(err);
+    }
+});
+
+// Close camera
+closeCameraBtn.addEventListener("click", () => {
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    cameraSection.style.display = "none";
+    openCameraBtn.style.display = "inline-block";
+});
+
+// Capture photo
+captureBtn.addEventListener("click", () => {
+    const context = canvas.getContext("2d");
+    canvas.width = camera.videoWidth;
+    canvas.height = camera.videoHeight;
+    context.drawImage(camera, 0, 0, canvas.width, canvas.height);
+
+    currentBlob = null;
+    canvas.toBlob(blob => currentBlob = blob, "image/jpeg");
+});
+
+// File input change
+fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    currentBlob = file;
+});
+
+// Detect button
+detectBtn.addEventListener("click", () => {
+    if (!currentBlob) {
+        alert("Please capture an image from camera or select a file.");
+        return;
+    }
+    sendImage(currentBlob);
+});
+
+// Send image to backend
+async function sendImage(blob) {
+    resultDiv.innerHTML = "<p class='text-muted text-center'>Processing...</p>";
+
+    const formData = new FormData();
+    formData.append("image", blob, "image.jpg");
+
+    const res = await fetch("/detect_windshield", { method: "POST", body: formData });
+    const data = await res.json();
+
+    const color = data.legal ? "success" : "danger";
+    const messageColor = data.legal ? "text-success" : "text-danger";
+
+    // SHOW close detection button
+    closeDetectionBtn.style.display = "block";
+
+    resultDiv.innerHTML = `
+    <div class="text-center mb-2">
+        <span class="fw-bold fs-5 ${messageColor}">
+            ${data.message}
+        </span><br>
+        <span class="badge bg-${color} mt-1">
+            Visibility: ${data.visibility}%
+        </span>
+    </div>
+
+    <div class="text-center mt-3">
+        <img class="img-fluid rounded" src="${data.result_image}" alt="Detection Result">
+    </div>
+
+    ${
+        data.violation_message
+        ? `<div class="mt-3 p-3 rounded border border-danger bg-light text-dark" style="white-space: pre-wrap; font-size: 14px;">
+                <span class="text-danger fw-bold">🚫 ILLEGAL VEHICLE MODIFICATION DETAILS:</span><br><br>
+                ${data.violation_message}
+           </div>`
+        : ""
+    }
+`;
+}
+
+// 👉 NEW: Close Detection
+closeDetectionBtn.addEventListener("click", () => {
+    resultDiv.innerHTML = "";
+    fileInput.value = "";
+    currentBlob = null;
+    closeDetectionBtn.style.display = "none";
+});
+</script>
+
+{% endblock %}

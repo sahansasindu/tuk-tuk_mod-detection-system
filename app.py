@@ -35,6 +35,15 @@ def page1():
 def page2():
     return render_template("windscreenvisibility.html")
 
+@app.route("/page3")
+def page3():
+    return render_template("horndetection.html")
+
+@app.route("/page4")
+def page4():
+    return render_template("modificationcharges.html")
+
+
 
 # -----------------------------
 # DETECTION ROUTE
