@@ -45,15 +45,35 @@ def detect_windscreen(image_path, upload_folder):
             "legal": False,
             "visibility": 0,
             "message": "❌ No windshield detected",
+            "violation_message": (
+                "⚠️ No windshield detected – vehicle may not comply with safety regulations."
+            ),
             "output_image": out_name
         }
 
     visibility = ((windshield_area - sticker_area) / windshield_area) * 100
     legal = visibility >= MIN_VISIBILITY
 
+    # Detailed violation message
+    if not legal:
+        violation_message = (
+            "❌ ILLEGAL – Visibility below 70%\n"
+            "--------------------------------------------\n"
+            "Gazette No: 2240/37\n"
+            "Date: Saturday, August 14, 2021\n"
+            "Link: https://www.documents.gov.lk/view/extra-gazettes/2021/8/2240-37_E.pdf\n\n"
+            "Regulations:\n"
+            " 1) Windscreen must maintain at least 70% visibility;\n"
+            " 2) Stickers or accessories must not obstruct view;\n"
+            "--------------------------------------------"
+        )
+    else:
+        violation_message = "✅ LEGAL – Visibility is acceptable."
+
     return {
         "legal": legal,
         "visibility": round(visibility, 2),
         "message": "✅ LEGAL" if legal else "❌ ILLEGAL – Visibility below 70%",
+        "violation_message": violation_message,
         "output_image": out_name
     }

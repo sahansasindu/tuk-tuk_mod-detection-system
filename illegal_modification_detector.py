@@ -41,9 +41,7 @@ def detect_illegal_modification(image_path, upload_folder):
         CLASS_NAMES[int(c)] for c in boxes.cls
     ] if len(boxes) else []
 
-    illegal_detected = any(
-        cls in ILLEGAL_CLASSES for cls in detected_classes
-    )
+    illegal_detected = any(cls in ILLEGAL_CLASSES for cls in detected_classes)
 
     # Annotated image
     annotated_img = results[0].plot()
@@ -51,11 +49,23 @@ def detect_illegal_modification(image_path, upload_folder):
     out_path = os.path.join(upload_folder, out_name)
     cv2.imwrite(out_path, annotated_img)
 
+    # -----------------------------
+    # Detailed violation message
+    # -----------------------------
     if illegal_detected:
         violation_message = (
             "⚠️ Detected Illegal Vehicle Modification!\n"
+            "--------------------------------------------\n"
             "Gazette No: 2240/37 (2021)\n"
-            "Sharp-edged or altered accessories are prohibited."
+            "Date: Saturday, August 14, 2021\n"
+            "Link: https://www.documents.gov.lk/view/extra-gazettes/2021/8/2240-37_E.pdf\n\n"
+            "Violation of REGULATIONS:\n"
+            " 1) (a) Exceed the weight, dimensions, or limitations of its prototype;\n"
+            "    (b) Alter its shape, design, or external appearance;\n"
+            "    (d) Lose its equilibrium;\n\n"
+            " 2) Sharp-edged accessories causing danger/obstruction are prohibited.\n\n"
+            " 6) Tyres, mud guards, or wheel covers must NOT protrude.\n"
+            "--------------------------------------------"
         )
     else:
         violation_message = "✅ No illegal modification detected."
