@@ -3,6 +3,7 @@
 # -----------------------------
 import os
 import cv2
+import base64
 from ultralytics import YOLO
 
 # -----------------------------
@@ -17,19 +18,36 @@ MODEL_PATH = os.path.join(
 CLASS_NAMES = ["LED_HeadLight", "Wind_Deflector"]
 
 # Charges (Rs.)
-LED_HEADLIGHT_CHARGE = 1000
-WIND_DEFLECTOR_CHARGE = 1000
+LED_CHARGE = 1000
+DEFLECTOR_CHARGE = 1000
+
+# Legal Reference
+LAW_REFERENCE = {
+    "authority": "Department of Motor Traffic (Sri Lanka)",
+    "regulation": "Motor Tricycle Modernization Program (2023)",
+    "details": [
+        "Replacing main lights with LED lights – Rs. 1000",
+        "Installing wind deflectors – Rs. 1000"
+    ],
+    "source": "https://dmt.gov.lk"
+}
 
 # -----------------------------
-# Load YOLO model
+# Load YOLO model (ONCE)
 # -----------------------------
 object_model = YOLO(MODEL_PATH)
 
 # -----------------------------
-# LEGAL OBJECT PREDICTION + LAW
+# IMAGE → BASE64 CONVERTER
 # -----------------------------
-def predict_legal_objects_with_law(image_path):
+def encode_image_to_base64(image):
+    _, buffer = cv2.imencode(".jpg", image)
+    return base64.b64encode(buffer).decode("utf-8")
 
+# -----------------------------
+# OBJECT PREDICTION + CHARGES
+# -----------------------------
+def predict_objects_with_charges(image_path):
     img = cv2.imread(image_path)
 
     if img is None:
@@ -47,39 +65,32 @@ def predict_legal_objects_with_law(image_path):
 
         if cls_name == "LED_HeadLight":
             led_detected = True
-
         elif cls_name == "Wind_Deflector":
-            # Even one deflector is sufficient
+            # One deflector is sufficient according to visual limitations
             deflector_detected = True
 
     # -----------------------------
-    # Charge calculation
+    # Charge Calculation
     # -----------------------------
     total_charge = 0
-
     if led_detected:
-        total_charge += LED_HEADLIGHT_CHARGE
-
+        total_charge += LED_CHARGE
     if deflector_detected:
-        total_charge += WIND_DEFLECTOR_CHARGE
+        total_charge += DEFLECTOR_CHARGE
 
     # -----------------------------
-    # Legal response formatting
+    # Annotated Image
+    # -----------------------------
+    annotated_img = results[0].plot()
+    annotated_img_base64 = encode_image_to_base64(annotated_img)
+
+    # -----------------------------
+    # Structured Response
     # -----------------------------
     return {
         "LED_HeadLights_detected": "YES" if led_detected else "NO",
         "Wind_Deflectors_detected": "YES" if deflector_detected else "NO",
-        "charges": {
-            "LED_HeadLight": LED_HEADLIGHT_CHARGE if led_detected else 0,
-            "Wind_Deflector": WIND_DEFLECTOR_CHARGE if deflector_detected else 0
-        },
         "total_charge_rs": total_charge,
-        "law_reference": {
-            "authority": "Department of Motor Traffic (Sri Lanka)",
-            "approval_year": "2022–2023",
-            "regulations": [
-                "Replacing main lights with LED lights – Rs. 1000",
-                "Installing wind deflectors – Rs. 1000"
-            ]
-        }
+        "law_reference": LAW_REFERENCE,
+        "annotated_image_base64": annotated_img_base64
     }

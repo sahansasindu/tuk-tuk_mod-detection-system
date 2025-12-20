@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container p-3">
+  <div class="card p-4 shadow-sm">
+
+    <h2 class="text-primary text-center mb-3">🚗 Legal Vehicle Modification Detector</h2>
+    <p class="text-muted text-center">
+      Upload a three-wheeler image to detect legal accessories and calculate charges
+      according to Sri Lankan DMT regulations
+    </p>
+
+    <!-- Image Upload -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">Upload Vehicle Image</label>
+      <input
+        type="file"
+        id="imageInput"
+        class="form-control"
+        accept="image/*"
+      >
+      <small class="text-muted">
+        Supported formats: JPG, PNG (clear side/front view recommended)
+      </small>
+    </div>
+
+    <!-- Detect Button -->
+    <button class="btn btn-success w-100 mb-3" id="detectObjectBtn">
+      🔍 Analyze Vehicle Image
+    </button>
+
+    <!-- Result Section -->
+    <div id="objectResult" class="mt-3"></div>
+
+    <!-- Close / Reset -->
+    <button
+      class="btn btn-outline-secondary w-100 mt-3"
+      id="resetBtn"
+      style="display:none;"
+    >
+      🧹 Clear Result
+    </button>
+
+  </div>
+</div>
+
+<script>
+const imageInput = document.getElementById("imageInput");
+const detectBtn = document.getElementById("detectObjectBtn");
+const resultDiv = document.getElementById("objectResult");
+const resetBtn = document.getElementById("resetBtn");
+
+// Detect legal objects
+detectBtn.addEventListener("click", async () => {
+    const file = imageInput.files[0];
+    if (!file) {
+        alert("Please upload an image.");
+        return;
+    }
+
+    resultDiv.innerHTML =
+        "<p class='text-muted text-center'>🔄 Analyzing image...</p>";
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+        const res = await fetch("/detect_legal_objects", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        showResult(data);
+    } catch (err) {
+        console.error(err);
+        resultDiv.innerHTML =
+            "<p class='text-danger text-center'>❌ Error processing image.</p>";
+    }
+});
+
+// Show results
+function showResult(data) {
+    resetBtn.style.display = "block";
+
+    const ledStatus = data.LED_HeadLights_detected === "YES";
+    const deflectorStatus = data.Wind_Deflectors_detected === "YES";
+
+    const charge = data.total_charge_rs;
+
+    resultDiv.innerHTML = `
+        <div class="text-center mb-3">
+            <h5 class="fw-bold">Detection Summary</h5>
+        </div>
+
+        <div class="row text-center mb-3">
+            <div class="col">
+                <span class="badge bg-${ledStatus ? "success" : "secondary"} p-2">
+                    LED Headlights: ${ledStatus ? "YES" : "NO"}
+                </span>
+            </div>
+            <div class="col">
+                <span class="badge bg-${deflectorStatus ? "success" : "secondary"} p-2">
+                    Wind Deflectors: ${deflectorStatus ? "YES" : "NO"}
+                </span>
+            </div>
+        </div>
+
+        <div class="alert alert-info text-center">
+            <h5>Total Charge</h5>
+            <strong>Rs. ${charge}</strong>
+        </div>
+
+        <div class="p-3 rounded border bg-light">
+            <strong>Relevant Regulation:</strong><br>
+            Department of Motor Traffic (DMT), Sri Lanka – Approved vehicle
+            modification fees for three-wheelers (2023).
+        </div>
+
+        <div class="mt-3 text-center">
+            <h6>Annotated Detection Result</h6>
+            <img
+                src="data:image/jpeg;base64,${data.annotated_image_base64}"
+                class="img-fluid rounded shadow"
+                alt="Detection Result"
+            >
+        </div>
+    `;
+}
+
+// Reset
+resetBtn.addEventListener("click", () => {
+    imageInput.value = "";
+    resultDiv.innerHTML = "";
+    resetBtn.style.display = "none";
+});
+</script>
+
+{% endblock %}

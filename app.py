@@ -4,7 +4,7 @@ import cv2
 import os
 import uuid
 from horn_related_funcs import predict_audio_with_law
-from legal_object_predictor import predict_legal_objects_with_law
+from legal_object_predictor import predict_objects_with_charges
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -43,7 +43,7 @@ def page3():
 
 @app.route("/page4")
 def page4():
-    return render_template("modificationcharges.html")
+    return render_template("legal_object_detection.html")
 
 
 
@@ -232,7 +232,7 @@ def detect_legal_objects():
     file.save(filepath)
 
     try:
-        result = predict_legal_objects_with_law(filepath)
+        result = predict_objects_with_charges(filepath)
         return jsonify(result)
 
     except Exception as e:
