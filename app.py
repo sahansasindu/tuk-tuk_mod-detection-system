@@ -4,6 +4,7 @@ import cv2
 import os
 import uuid
 from horn_related_funcs import predict_audio_with_law
+from legal_object_predictor import predict_legal_objects_with_law
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -214,6 +215,28 @@ def detect_horn():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+# -----------------------------
+# LEGAL OBJECT DETECTION API
+# -----------------------------
+@app.route("/detect_legal_objects", methods=["POST"])
+def detect_legal_objects():
+
+    if "image" not in request.files:
+        return jsonify({"error": "No image file uploaded"})
+
+    file = request.files["image"]
+
+    # Save uploaded image
+    filename = f"{uuid.uuid4().hex}.jpg"
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    file.save(filepath)
+
+    try:
+        result = predict_legal_objects_with_law(filepath)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 # -----------------------------
