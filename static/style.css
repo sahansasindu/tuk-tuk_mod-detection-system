@@ -1,9 +1,11 @@
 .hero-section {
     height: 70vh;
-    background: url("my_web_app\static\images\front.png") center/cover no-repeat;
+    /* Correct way to reference Flask static files */
+    background: url("/static/images/front.png") center/cover no-repeat;
     background-color: rgba(0, 0, 0, 0.6);
     background-blend-mode: darken;
 }
+
 
 .info-box {
     background: #ffffff;
