@@ -4,147 +4,125 @@
 <div class="container p-3">
   <div class="card p-4 shadow-sm">
 
-    <h2 class="text-primary text-center mb-3">Illegal Horn sound Detector</h2>
+    <h2 class="text-primary text-center mb-3">🚨 Illegal Horn Sound Detector</h2>
+    <p class="text-muted text-center">
+      Upload a vehicle horn sound to check legality under Sri Lankan traffic law
+    </p>
 
-    <!-- Camera & File Controls -->
-    <div class="d-flex flex-column gap-2 mb-2">
-        <button class="btn btn-outline-primary w-100" id="openCameraBtn">📷 Open Camera</button>
-        <input type="file" id="windInput" class="form-control" accept="image/*">
+    <!-- Audio Upload -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">Upload Horn Audio File</label>
+      <input
+        type="file"
+        id="audioInput"
+        class="form-control"
+        accept=".wav,.mp3,.m4a"
+      >
+      <small class="text-muted">
+        Supported formats: WAV, MP3, M4A (max ~3 seconds recommended)
+      </small>
     </div>
 
-    <!-- Detection Button -->
-    <button class="btn btn-success w-100 mb-2" id="detectBtn">Check Visibility</button>
+    <!-- Detect Button -->
+    <button class="btn btn-success w-100 mb-3" id="detectHornBtn">
+      🔍 Analyze Horn Sound
+    </button>
 
-    <!-- Camera Section -->
-    <div id="cameraSection" style="display:none;" class="text-center mt-3">
-        <video id="camera" autoplay playsinline class="img-fluid rounded"></video>
-        <canvas id="snapshot" style="display:none;"></canvas>
-        <div class="mt-2 d-flex justify-content-center gap-2 flex-wrap">
-            <button class="btn btn-secondary" id="captureBtn">📸 Capture Photo</button>
-            <button class="btn btn-outline-danger" id="closeCameraBtn">❌ Close Camera</button>
-        </div>
-    </div>
+    <!-- Result Section -->
+    <div id="hornResult" class="mt-3"></div>
 
-    <!-- Detection Result -->
-    <div id="windResult" class="mt-4"></div>
-
-    <!-- 👉 NEW: Close Detection Button -->
-    <button class="btn btn-outline-secondary w-100 mt-3" id="closeDetectionBtn" style="display:none;">
-        🧹 Close Detection
+    <!-- Close / Reset -->
+    <button
+      class="btn btn-outline-secondary w-100 mt-3"
+      id="resetBtn"
+      style="display:none;"
+    >
+      🧹 Clear Result
     </button>
 
   </div>
 </div>
 
 <script>
-const camera = document.getElementById("camera");
-const canvas = document.getElementById("snapshot");
-const openCameraBtn = document.getElementById("openCameraBtn");
-const closeCameraBtn = document.getElementById("closeCameraBtn");
-const captureBtn = document.getElementById("captureBtn");
-const detectBtn = document.getElementById("detectBtn");
-const cameraSection = document.getElementById("cameraSection");
-const resultDiv = document.getElementById("windResult");
-const fileInput = document.getElementById("windInput");
-const closeDetectionBtn = document.getElementById("closeDetectionBtn");
+const audioInput = document.getElementById("audioInput");
+const detectBtn = document.getElementById("detectHornBtn");
+const resultDiv = document.getElementById("hornResult");
+const resetBtn = document.getElementById("resetBtn");
 
-let stream;
-let currentBlob = null;
-
-// Open camera
-openCameraBtn.addEventListener("click", async () => {
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        camera.srcObject = stream;
-        cameraSection.style.display = "block";
-        openCameraBtn.style.display = "none";
-    } catch (err) {
-        alert("Camera access denied or unavailable.");
-        console.error(err);
-    }
-});
-
-// Close camera
-closeCameraBtn.addEventListener("click", () => {
-    if (stream) stream.getTracks().forEach(track => track.stop());
-    cameraSection.style.display = "none";
-    openCameraBtn.style.display = "inline-block";
-});
-
-// Capture photo
-captureBtn.addEventListener("click", () => {
-    const context = canvas.getContext("2d");
-    canvas.width = camera.videoWidth;
-    canvas.height = camera.videoHeight;
-    context.drawImage(camera, 0, 0, canvas.width, canvas.height);
-
-    currentBlob = null;
-    canvas.toBlob(blob => currentBlob = blob, "image/jpeg");
-});
-
-// File input change
-fileInput.addEventListener("change", () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    currentBlob = file;
-});
-
-// Detect button
-detectBtn.addEventListener("click", () => {
-    if (!currentBlob) {
-        alert("Please capture an image from camera or select a file.");
+// Detect horn
+detectBtn.addEventListener("click", async () => {
+    const file = audioInput.files[0];
+    if (!file) {
+        alert("Please upload an audio file.");
         return;
     }
-    sendImage(currentBlob);
-});
 
-// Send image to backend
-async function sendImage(blob) {
-    resultDiv.innerHTML = "<p class='text-muted text-center'>Processing...</p>";
+    resultDiv.innerHTML =
+        "<p class='text-muted text-center'>🔄 Analyzing horn sound...</p>";
 
     const formData = new FormData();
-    formData.append("image", blob, "image.jpg");
+    formData.append("audio", file);
 
-    const res = await fetch("/detect_windshield", { method: "POST", body: formData });
-    const data = await res.json();
+    try {
+        const res = await fetch("/detect_horn", {
+            method: "POST",
+            body: formData
+        });
 
-    const color = data.legal ? "success" : "danger";
-    const messageColor = data.legal ? "text-success" : "text-danger";
+        const data = await res.json();
+        showResult(data);
+    } catch (err) {
+        console.error(err);
+        resultDiv.innerHTML =
+            "<p class='text-danger text-center'>❌ Error processing audio.</p>";
+    }
+});
 
-    // SHOW close detection button
-    closeDetectionBtn.style.display = "block";
+// Show results
+function showResult(data) {
+    resetBtn.style.display = "block";
+
+    if (data.horn_type === "Uncertain / Non-horn") {
+        resultDiv.innerHTML = `
+            <div class="alert alert-warning text-center">
+                <h5>⚠️ Uncertain Detection</h5>
+                <p>Confidence: <strong>${data.confidence}%</strong></p>
+                <p>${data.message}</p>
+            </div>
+        `;
+        return;
+    }
+
+    const legalColor = data.legal ? "success" : "danger";
+    const legalText = data.legal ? "LEGAL" : "ILLEGAL";
 
     resultDiv.innerHTML = `
-    <div class="text-center mb-2">
-        <span class="fw-bold fs-5 ${messageColor}">
-            ${data.message}
-        </span><br>
-        <span class="badge bg-${color} mt-1">
-            Visibility: ${data.visibility}%
-        </span>
-    </div>
+        <div class="text-center mb-3">
+            <h5 class="text-${legalColor}">
+                ${data.horn_type}
+            </h5>
+            <span class="badge bg-${legalColor}">
+                ${legalText}
+            </span>
+            <p class="mt-2">
+                Confidence: <strong>${data.confidence}%</strong>
+            </p>
+        </div>
 
-    <div class="text-center mt-3">
-        <img class="img-fluid rounded" src="${data.result_image}" alt="Detection Result">
-    </div>
-
-    ${
-        data.violation_message
-        ? `<div class="mt-3 p-3 rounded border border-danger bg-light text-dark" style="white-space: pre-wrap; font-size: 14px;">
-                <span class="text-danger fw-bold">🚫 ILLEGAL VEHICLE MODIFICATION DETAILS:</span><br><br>
-                ${data.violation_message}
-           </div>`
-        : ""
-    }
-`;
+        <div class="p-3 rounded border bg-light">
+            <strong>Relevant Law:</strong><br>
+            ${data.law}
+            <hr>
+            <small>${data.violation_message}</small>
+        </div>
+    `;
 }
 
-// 👉 NEW: Close Detection
-closeDetectionBtn.addEventListener("click", () => {
+// Reset
+resetBtn.addEventListener("click", () => {
+    audioInput.value = "";
     resultDiv.innerHTML = "";
-    fileInput.value = "";
-    currentBlob = null;
-    closeDetectionBtn.style.display = "none";
+    resetBtn.style.display = "none";
 });
 </script>
 
