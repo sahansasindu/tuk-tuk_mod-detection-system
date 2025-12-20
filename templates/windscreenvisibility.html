@@ -6,14 +6,18 @@
 
     <h2 class="text-primary text-center mb-3">Windscreen Visibility Detector</h2>
 
-    <!-- Camera & File Controls -->
-    <div class="d-flex flex-column gap-2 mb-2">
-        <button class="btn btn-outline-primary w-100" id="openCameraBtn">📷 Open Camera</button>
+    <!-- File input FIRST -->
+    <div class="mb-3 text-start">
+        <label class="form-label fw-bold">Upload Vehicle Image</label>
         <input type="file" id="windInput" class="form-control" accept="image/*">
+        <small class="text-muted">Supported formats: JPG, PNG (clear side/front view recommended)</small>
     </div>
 
-    <!-- Detection Button -->
-    <button class="btn btn-success w-100 mb-2" id="detectBtn">Check Visibility</button>
+    <!-- Buttons BELOW file input -->
+    <div class="d-flex flex-column gap-2 mb-3">
+        <button class="btn btn-outline-primary w-100" id="openCameraBtn">📷 Open Camera</button>
+        <button class="btn btn-success w-100" id="detectBtn">🔍 Check Visibility</button>
+    </div>
 
     <!-- Camera Section -->
     <div id="cameraSection" style="display:none;" class="text-center mt-3">
@@ -28,7 +32,7 @@
     <!-- Detection Result -->
     <div id="windResult" class="mt-4"></div>
 
-    <!-- 👉 NEW: Close Detection Button -->
+    <!-- Close Detection -->
     <button class="btn btn-outline-secondary w-100 mt-3" id="closeDetectionBtn" style="display:none;">
         🧹 Close Detection
     </button>
@@ -50,6 +54,13 @@ const closeDetectionBtn = document.getElementById("closeDetectionBtn");
 
 let stream;
 let currentBlob = null;
+
+// File input change
+fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    currentBlob = file;
+});
 
 // Open camera
 openCameraBtn.addEventListener("click", async () => {
@@ -82,14 +93,7 @@ captureBtn.addEventListener("click", () => {
     canvas.toBlob(blob => currentBlob = blob, "image/jpeg");
 });
 
-// File input change
-fileInput.addEventListener("change", () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    currentBlob = file;
-});
-
-// Detect button
+// Detect button (works for camera capture or file)
 detectBtn.addEventListener("click", () => {
     if (!currentBlob) {
         alert("Please capture an image from camera or select a file.");
@@ -111,7 +115,6 @@ async function sendImage(blob) {
     const color = data.legal ? "success" : "danger";
     const messageColor = data.legal ? "text-success" : "text-danger";
 
-    // SHOW close detection button
     closeDetectionBtn.style.display = "block";
 
     resultDiv.innerHTML = `
@@ -136,10 +139,10 @@ async function sendImage(blob) {
            </div>`
         : ""
     }
-`;
+    `;
 }
 
-// 👉 NEW: Close Detection
+// Close Detection
 closeDetectionBtn.addEventListener("click", () => {
     resultDiv.innerHTML = "";
     fileInput.value = "";
