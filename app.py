@@ -3,13 +3,16 @@ from ultralytics import YOLO
 import cv2
 import os
 import uuid
+from horn_related_funcs import predict_audio_with_law
+from legal_object_predictor import predict_objects_with_charges
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Load YOLO model
-model = YOLO(r"D:\New folder\my_web_app\weights\best.pt")
+# model = YOLO(r"D:\New folder\my_web_app\weights\best.pt")
+model = YOLO(r"..\weights\best.pt")
 
 # Class names
 class_names = [
@@ -33,6 +36,15 @@ def page1():
 @app.route("/page2")
 def page2():
     return render_template("windscreenvisibility.html")
+
+@app.route("/page3")
+def page3():
+    return render_template("horndetection.html")
+
+@app.route("/page4")
+def page4():
+    return render_template("legal_object_detection.html")
+
 
 
 # -----------------------------
@@ -105,7 +117,8 @@ def detect():
 # -----------------------------
 # Windscreen DETECTION ROUTE
 # -----------------------------
-wind_model = YOLO(r"D:\New folder\my_web_app\weights\best1.pt")
+# wind_model = YOLO(r"D:\New folder\my_web_app\weights\best1.pt")
+wind_model = YOLO(r"..\weights\best1.pt")
 
 @app.route("/detect_windshield", methods=["POST"])
 def detect_windshield():
@@ -180,7 +193,50 @@ def detect_windshield():
         "violation_message": violation_message
     })
 
+# -----------------------------
+# HORN DETECTION API
+# -----------------------------
+@app.route("/detect_horn", methods=["POST"])
+def detect_horn():
+    if "audio" not in request.files:
+        return jsonify({"error": "No audio file uploaded"})
 
+    file = request.files["audio"]
+
+    # Save uploaded audio
+    filename = f"{uuid.uuid4().hex}.wav"
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    file.save(filepath)
+
+    try:
+        result = predict_audio_with_law(filepath)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+# -----------------------------
+# LEGAL OBJECT DETECTION API
+# -----------------------------
+@app.route("/detect_legal_objects", methods=["POST"])
+def detect_legal_objects():
+
+    if "image" not in request.files:
+        return jsonify({"error": "No image file uploaded"})
+
+    file = request.files["image"]
+
+    # Save uploaded image
+    filename = f"{uuid.uuid4().hex}.jpg"
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    file.save(filepath)
+
+    try:
+        result = predict_objects_with_charges(filepath)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 # -----------------------------

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container p-3">
+  <div class="card p-4 shadow-sm">
+
+    <h2 class="text-primary text-center mb-3">🚨 Illegal Horn Sound Detector</h2>
+    <p class="text-muted text-center">
+      Upload a vehicle horn sound to check legality under Sri Lankan traffic law
+    </p>
+
+    <!-- Audio Upload -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">Upload Horn Audio File</label>
+      <input
+        type="file"
+        id="audioInput"
+        class="form-control"
+        accept=".wav,.mp3,.m4a"
+      >
+      <small class="text-muted">
+        Supported formats: WAV, MP3, M4A (max ~3 seconds recommended)
+      </small>
+    </div>
+
+    <!-- Detect Button -->
+    <button class="btn btn-success w-100 mb-3" id="detectHornBtn">
+      🔍 Analyze Horn Sound
+    </button>
+
+    <!-- Result Section -->
+    <div id="hornResult" class="mt-3"></div>
+
+    <!-- Close / Reset -->
+    <button
+      class="btn btn-outline-secondary w-100 mt-3"
+      id="resetBtn"
+      style="display:none;"
+    >
+      🧹 Clear Result
+    </button>
+
+  </div>
+</div>
+
+<script>
+const audioInput = document.getElementById("audioInput");
+const detectBtn = document.getElementById("detectHornBtn");
+const resultDiv = document.getElementById("hornResult");
+const resetBtn = document.getElementById("resetBtn");
+
+// Detect horn
+detectBtn.addEventListener("click", async () => {
+    const file = audioInput.files[0];
+    if (!file) {
+        alert("Please upload an audio file.");
+        return;
+    }
+
+    resultDiv.innerHTML =
+        "<p class='text-muted text-center'>🔄 Analyzing horn sound...</p>";
+
+    const formData = new FormData();
+    formData.append("audio", file);
+
+    try {
+        const res = await fetch("/detect_horn", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        showResult(data);
+    } catch (err) {
+        console.error(err);
+        resultDiv.innerHTML =
+            "<p class='text-danger text-center'>❌ Error processing audio.</p>";
+    }
+});
+
+// Show results
+function showResult(data) {
+    resetBtn.style.display = "block";
+
+    if (data.horn_type === "Uncertain / Non-horn") {
+        resultDiv.innerHTML = `
+            <div class="alert alert-warning text-center">
+                <h5>⚠️ Uncertain Detection</h5>
+                <p>Confidence: <strong>${data.confidence}%</strong></p>
+                <p>${data.message}</p>
+            </div>
+        `;
+        return;
+    }
+
+    const legalColor = data.legal ? "success" : "danger";
+    const legalText = data.legal ? "LEGAL" : "ILLEGAL";
+
+    resultDiv.innerHTML = `
+        <div class="text-center mb-3">
+            <h5 class="text-${legalColor}">
+                ${data.horn_type}
+            </h5>
+            <span class="badge bg-${legalColor}">
+                ${legalText}
+            </span>
+            <p class="mt-2">
+                Confidence: <strong>${data.confidence}%</strong>
+            </p>
+        </div>
+
+        <div class="p-3 rounded border bg-light">
+            <strong>Relevant Law:</strong><br>
+            ${data.law}
+            <hr>
+            <small>${data.violation_message}</small>
+        </div>
+    `;
+}
+
+// Reset
+resetBtn.addEventListener("click", () => {
+    audioInput.value = "";
+    resultDiv.innerHTML = "";
+    resetBtn.style.display = "none";
+});
+</script>
+
+{% endblock %}
