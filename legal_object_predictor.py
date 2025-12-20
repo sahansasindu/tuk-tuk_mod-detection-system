@@ -11,7 +11,7 @@ from ultralytics import YOLO
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_PATH = os.path.join(
-    BASE_DIR, "weights", "object_model", "best.pt"
+    BASE_DIR, "weights", "legal_charge_cal_model", "yolov8s_trained.pt"
 )
 
 CLASS_NAMES = ["LED_HeadLight", "Wind_Deflector"]
