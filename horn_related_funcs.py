@@ -86,9 +86,10 @@ def predict_audio_with_law(audio_path):
             "legal": False,
             "law": "Motor Traffic (Amendment) Act No. 8 of 2009, Section 155(3)",
             "violation_message": (
-                "No person shall use a motor vehicle that has been equipped with a multi-tone horn "
-                "sounding a succession of different notes, or with any other sound-producing device "
-                "giving a harsh, shrill, loud or alarming noise, except for emergency vehicles."
+                '''The law specifies that no person shall use a motor vehicle that 
+                has been equipped with a multi-tone horn sounding a succession of 
+                different notes or with any other sound-producing device giving a 
+                harsh, shrill, loud, or alarming noise, except for emergency vehicles.'''
             )
         }
 
@@ -99,7 +100,7 @@ def predict_audio_with_law(audio_path):
             "legal": True,
             "law": "Motor Traffic (Amendment) Act No. 8 of 2009, Section 155(3)",
             "violation_message": (
-                "Single-tone horns are permitted provided they do not produce harsh, shrill, "
-                "or alarming noise."
+                '''The law specifies single-tone horns are permitted provided 
+                they do not produce harsh, shrill, or alarming noise.'''
             )
         }

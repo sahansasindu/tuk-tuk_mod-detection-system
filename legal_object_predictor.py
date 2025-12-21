@@ -29,7 +29,7 @@ LAW_REFERENCE = {
         "Replacing main lights with LED lights – Rs. 1000",
         "Installing wind deflectors – Rs. 1000"
     ],
-    "source": "https://dmt.gov.lk"
+    "source": "https://dmt.gov.lk/index.php?option=com_content&view=article&id=98:2023-07-13-11-08-43&catid=8&Itemid=140&lang=en"
 }
 
 # -----------------------------
